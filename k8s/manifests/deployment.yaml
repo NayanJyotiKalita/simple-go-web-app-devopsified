@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: go-web-app
+  name: go-web-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: go-web-app
+  template:
+    metadata:
+      labels:
+        app: go-web-app
+    spec:
+      containers:
+      - image: nayanjk/go-web-app:v1
+        name: nginx
+        ports:
+        - containerPort: 8080
+
+
