@@ -1,4 +1,4 @@
-<img width="1631" height="733" alt="image" src="https://github.com/user-attachments/assets/a20364ff-0f52-4ff4-819e-8427575de738" />Before trying to do any Containerization, we first try to run the application in our local system whether it works - It's a very crucial step:
+Before trying to do any Containerization, we first try to run the application in our local system whether it works - It's a very crucial step:
 
 ---
 
@@ -214,9 +214,6 @@ spec:
   # type: CLusterIP
   type: NodePort
 ```
-
-- In our initial, `service`,  there was no `EXTERNAL-IP` mapped to it as ClusterIP service doesn't need an external ip address to map
-- But as soon as we apply the above file, we see the difference:
 
 ```
 k apply -f service.yaml
