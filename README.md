@@ -1,4 +1,4 @@
-Before trying to do any Containerization, we first try to run the application in our local system whether it works - It's a very crucial step:
+<img width="1631" height="733" alt="image" src="https://github.com/user-attachments/assets/a20364ff-0f52-4ff4-819e-8427575de738" />Before trying to do any Containerization, we first try to run the application in our local system whether it works - It's a very crucial step:
 
 ---
 
@@ -119,19 +119,108 @@ CMD [ "./main" ]
 
 # Kubernetes Manifests
 
+- We have written Kubernetes manifest files:
+    - [deployment.yaml](/k8s/manifests/deployment.yaml)    # For our application with labels, selectors, and containerPort as 8080
+    - [service.yaml](/k8s/manifests/service.yaml)       # ClusterIP Service to expose our pods internally for uninterrupted communication -> ServicePort: 80 and TargetPort:8080 because the application is exposed at port 8080
+    - [ingress.yaml](/k8s/manifests/ingress.yaml)       # To open our application to the external world
+ 
+## Testing Our Application using NodePort Service
 
+- We need a Kubernetes cluster to test our application
+- We'll use EKS Cluster (as we are trying to implement production grade project here)
+- Before running the below command, make sure you setup the pre-requisite tools: [pre-requisites]()
+  
+```bash
+eksctl create cluster --name <CLUSTER-NAME> --region <YOUR-REGION>
+```
 
+---
 
+<img width="1498" height="752" alt="image" src="https://github.com/user-attachments/assets/bae119d6-c64f-4ce1-af2e-9415ebc2f97d" />
 
+---
+---
 
+All Set! Our Cluster ready with EC2 instances:
 
+---
 
+<img width="1129" height="320" alt="image" src="https://github.com/user-attachments/assets/82abb538-a21d-49bc-8013-e8095d3ba07a" />
 
+---
+---
 
+<img width="1553" height="809" alt="image" src="https://github.com/user-attachments/assets/b21f723b-1f69-4268-9202-b271c4eabd27" />
 
+---
+---
 
+#### Resolved some RBAC issues by giving the necessary permission to our user to be able to access our Resources:
 
+---
 
+<img width="1538" height="611" alt="image" src="https://github.com/user-attachments/assets/1f69779d-f420-48f2-b148-3a9e171536d1" />
+
+---
+---
+
+#### We can see our resources:
+
+---
+
+<img width="1545" height="712" alt="image" src="https://github.com/user-attachments/assets/e5ca92f7-8295-4ed9-8731-ed7bed766c85" />
+
+---
+---
+
+#### Now it's time to launch our deployement and service:
+
+---
+
+<img width="845" height="360" alt="image" src="https://github.com/user-attachments/assets/7fea2646-2683-46d1-8124-f4649510cedf" />
+
+---
+---
+
+**We can verify the deployment and service getting created in our Cluster**
+
+---
+
+<img width="1631" height="733" alt="image" src="https://github.com/user-attachments/assets/e9fb67d0-30fc-424b-acd4-123977f483fc" />
+
+---
+---
+
+**But this way we cannot access our application because ClusteIP Service does not map/expose our application to any export ports** </br>
+
+**So we use NodePort Service to expose our application
+
+**In our service.yaml file, we change the service type from ClusterIP to NodePort**
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: go-web-app
+  name: go-web-app
+spec:
+  ports:
+  - port: 80          # Port of the Service
+    protocol: TCP
+    targetPort: 8080  # Port of the application
+  selector:
+    app: go-web-app
+  # type: CLusterIP
+  type: NodePort
+```
+
+- In our initial, `service`,  there was no `EXTERNAL-IP` mapped to it as ClusterIP service doesn't need an external ip address to map
+- But as soon as we apply the above file, we see the difference:
+
+```
+k apply -f service.yaml
+```
 
 
 
