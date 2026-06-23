@@ -219,6 +219,267 @@ spec:
 k apply -f service.yaml
 ```
 
+```
+chucky@Dell:~/simple-go-web-app-devopsified$ k get svc
+NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
+go-web-app   NodePort    10.100.245.61   <none>        80:32379/TCP   8h
+kubernetes   ClusterIP   10.100.0.1      <none>        443/TCP        9h
+
+chucky@Dell:~/simple-go-web-app-devopsified$ k get nodes -o wide
+NAME                                           STATUS   ROLES    AGE   VERSION               INTERNAL-IP      EXTERNAL-IP     OS-IMAGE                        KERNEL-VERSION                    CONTAINER-RUNTIME
+ip-192-168-56-151.us-west-2.compute.internal   Ready    <none>   9h    v1.34.9-eks-93b80c6   192.168.56.151   34.219.31.71    Amazon Linux 2023.12.20260611   6.12.90-120.164.amzn2023.x86_64   containerd://2.2.4+unknown
+ip-192-168-66-77.us-west-2.compute.internal    Ready    <none>   9h    v1.34.9-eks-93b80c6   192.168.66.77    35.164.247.96   Amazon Linux 2023.12.20260611   6.12.90-120.164.amzn2023.x86_64   containerd://2.2.4+unknown
+```
+
+**We can take any the External IP of any of the Nodes and map it to the Port of the NodePort Service given to us i.e. 32379**
+
+***BUT!!!!***
+
+### Error Alert! 
+
+---
+
+<img width="750" height="571" alt="Screenshot 2026-06-23 000013" src="https://github.com/user-attachments/assets/36f6f5df-0a36-4ab6-99c3-f153798d9ca0" />
+
+---
+---
+
+### TROUBLESHOOTING
+
+Upong further investigation, we found that 
+  - A NodePort only opens the port on the node. AWS must also allow traffic to reach that port.
+  - First thing to check: Security Group
+    
+```
+EKS worker nodes typically allow:
+22
+80
+443
+1025-65535 (internal only)
+```
+
+  - But NodePort 32379 is usually NOT open from the internet.
+  - So we check the security group of our nodes
+  - We found that it is open but only from a specific Security Group
+
+---
+
+<img width="1625" height="397" alt="image" src="https://github.com/user-attachments/assets/7092e11b-515f-460e-80b4-9c432909375b" />
+
+---
+---
+
+**We opened the port that is given to us by the NodePort and check**
+
+---
+
+<img width="1642" height="356" alt="image" src="https://github.com/user-attachments/assets/8b060558-8618-4b24-8ece-23084b0beb70" />
+
+---
+---
+
+**And Finally it worked**
+
+---
+
+<img width="1505" height="744" alt="image" src="https://github.com/user-attachments/assets/00132e4b-c54b-46aa-93df-08366fb37314" />
+
+---
+
+This means that our Deployment is working find!!!
+
+---
+
+## Testing our Ingress file by configuring a Load Balancer
+
+```
+chucky@Dell:~/simple-go-web-app-devopsified/k8s/manifests$ k apply -f ingress.yaml 
+ingress.networking.k8s.io/go-web-app created
+
+chucky@Dell:~/simple-go-web-app-devopsified/k8s/manifests$ k get ingress
+NAME         CLASS   HOSTS              ADDRESS   PORTS   AGE
+go-web-app   nginx   go-web-app.local             80      30s
+```
+
+  - Ingress got created created sucessfully
+  - But we see the `ADDRESS` field is still blank
+  - It will be filled with the DNS name of the Load Balancer once it is configured
+  - For that we need an Ingress Controller (We actually need to implement GatewayAPI but we'll do ingress for now)
+  - Ingress Controller's Primary Responsibility is to look for an ingress resource and create a Load Balancer for it
+  - We use the below command to intall the Nginx Ingress Controller
+
+```
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.15.1/deploy/static/provider/aws/deploy.yaml
+```
+```
+chucky@Dell:~/simple-go-web-app-devopsified/k8s/manifests$ k get pods -n ingress-nginx
+NAME                                        READY   STATUS      RESTARTS   AGE
+ingress-nginx-controller-6fb6bc46cb-td2cl   1/1     Running     0          7m57s
+```
+
+#### NOTE:
+  - In our `service.yaml` file, we have mentioned: `host: go-web-app.local`
+  - This means that we need to be able to access our application when we run `go-web-app.local` in our browser instead of the address of the load balancer
+  - And it should request to the service which would eventually forward our request to our pods/application
+
+```
+chucky@Dell:~/simple-go-web-app-devopsified/k8s/manifests$ k get ingress
+NAME         CLASS   HOSTS              ADDRESS                                                                         PORTS   AGE
+go-web-app   nginx   go-web-app.local   af1c475d2f805413b85b38159055f2bc-f193cd6541f83b02.elb.us-west-2.amazonaws.com   80      25m
+```
+
+**We can now see that the address field is now filled with the DNS/FQDL - Fully Qualified Domain Name of the load balancer (network) whihc is created by the ingress controller
+
+---
+
+<img width="1605" height="693" alt="Screenshot 2026-06-23 005502" src="https://github.com/user-attachments/assets/ded515bb-8b11-4eab-9483-44365d0afb96" />
+
+---
+---
+
+But still we cannot access our application:
+
+---
+
+<img width="1046" height="159" alt="image" src="https://github.com/user-attachments/assets/18f56414-eb4b-4525-9328-fc57c57652ee" />
+
+---
+
+```
+chucky@Dell:~/simple-go-web-app-devopsified$ curl go-web-app.local/courses
+curl: (6) Could not resolve host: go-web-app.local
+```
+
+---
+
+#### This is happening because in our Ingress file we have explicitely mentioned the host name to exactly as **go-web-app.local** 
+  - This means that we can only access our application if our host name is mapped correctly to the IP address of the Load Balancer
+
+```
+chucky@Dell:~/simple-go-web-app-devopsified/k8s/manifests$ nslookup af1c475d2f805413b85b38159055f2bc-f193cd6541f83b02.elb.us-west-2.amazonaws.com
+Server:         10.255.255.254
+Address:        10.255.255.254#53
+
+Non-authoritative answer:
+Name:   af1c475d2f805413b85b38159055f2bc-f193cd6541f83b02.elb.us-west-2.amazonaws.com
+Address: 100.23.52.116
+Name:   af1c475d2f805413b85b38159055f2bc-f193cd6541f83b02.elb.us-west-2.amazonaws.com
+Address: 34.213.83.57
+Name:   af1c475d2f805413b85b38159055f2bc-f193cd6541f83b02.elb.us-west-2.amazonaws.com
+Address: 52.42.84.42
+```
+
+#### So what we do here is - we take any of the IP Address from above and map it to our host name in _/etc/hosts_ path
+```
+127.0.0.1       localhost
+127.0.1.1       Dell.localdomain        Dell
+52.42.84.42   go-web-app.local
+```
+
+**We are all set but and seems like we would be able to access our application** </br>
+
+***BUT!!!***
+
+---
+
+<img width="720" height="637" alt="image" src="https://github.com/user-attachments/assets/06b70cc4-31d5-4446-94e0-e9440bd63db9" />
+
+---
+
+
+---
+
+### After some head hitting troubleshooting, I found out that it was happening due to misconfiguration with the System
+  - I am using WSL and so I configured the DNS in my WSL, no in my windows system
+  - So either I need to configure the DNS in my Windows or I can just verify in from the terminal of my WSL
+
+**IT was successful**
+
+```
+chucky@Dell:~/simple-go-web-app-devopsified$ curl go-web-app.local/courses
+<DocType html>
+
+<html>
+    <head>
+        <title>Learn DevOps from Basics</title>
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+            }
+
+            header {
+                background-color: #333;
+                color: #fff;
+                padding: 10px 0;
+                text-align: center;
+            }
+
+            nav ul {
+                list-style-type: none;
+                padding: 0;
+            }
+
+            nav ul li {
+                display: inline;
+                margin-right: 10px;
+            }
+
+            nav ul li a {
+                color: #fff;
+                text-decoration: none;
+            }
+
+            main {
+                padding: 20px;
+            }
+
+            section {
+                margin-bottom: 20px;
+            }
+
+            footer {
+                background-color: #333;
+                color: #fff;
+                text-align: center;
+                padding: 10px 0;
+                position: fixed;
+                bottom: 0;
+                width: 100%;
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            <nav>
+                <ul>
+                    <li><a href="home">Home</a></li>
+                    <li><a href="about">About</a></li>
+                    <li><a href="contact">Contact</a></li>
+                    <li><a href="courses">Courses</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <main>
+            <section>
+                <h1>Learn DevOps from Basics</h1>
+                <p>DevOps is a set of practices that combines software development (Dev) and IT operations (Ops)</p>
+                <p>It aims to shorten the systems development life cycle and provide continuous delivery with high software quality. DevOps is complementary with Agile software development; several DevOps aspects came from Agile methodology</p>    
+```
+
+---
+---
+---
+
+
+
+
+
+
+
+
+
 
 
 
