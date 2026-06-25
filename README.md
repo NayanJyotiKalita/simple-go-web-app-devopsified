@@ -472,7 +472,18 @@ chucky@Dell:~/simple-go-web-app-devopsified$ curl go-web-app.local/courses
 ---
 ---
 
+# HELM
 
+  - Helm helps us launching the same files/configurations into different environments with ease
+
+  - It helps us in variabalizing various hardcoded values
+    - e.g. : `image: nayanjk/go-web-app:dev` for our developer environment and we `image: nayanjk/go-web-app:stage/prod` for the respective env.
+
+    - It helps us in variabalizing those env parameters with an ease reducing our efforts to write same files repeatedly
+
+    - We would have needed to create one folder for each env.
+
+    
 
 
 
