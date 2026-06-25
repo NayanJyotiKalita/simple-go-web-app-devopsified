@@ -15,7 +15,7 @@ spec:
         app: go-web-app
     spec:
       containers:
-      - image: nayanjk/go-web-app:v1
+      - image: nayanjk/go-web-app:{{ .Values.image.tag }}
         name: nginx
         ports:
         - containerPort: 8080
