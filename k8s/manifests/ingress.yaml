@@ -15,6 +15,6 @@ spec:
             name: go-web-app
             port:
               number: 80
-        path: /path
+        path: /
         pathType: Prefix
 
