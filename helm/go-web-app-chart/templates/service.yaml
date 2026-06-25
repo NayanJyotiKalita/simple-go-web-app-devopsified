@@ -1,15 +1,16 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "go-web-app-chart.fullname" . }}
   labels:
-    {{- include "go-web-app-chart.labels" . | nindent 4 }}
+    app: go-web-app
+  name: go-web-app
 spec:
-  type: {{ .Values.service.type }}
   ports:
-    - port: {{ .Values.service.port }}
-      targetPort: http
-      protocol: TCP
-      name: http
+  - port: 80          # Port of the Service
+    protocol: TCP
+    targetPort: 8080  # Port of the application
   selector:
-    {{- include "go-web-app-chart.selectorLabels" . | nindent 4 }}
+    app: go-web-app
+  # type: ClusterIp
+  type: NodePort
+
