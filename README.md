@@ -483,16 +483,117 @@ chucky@Dell:~/simple-go-web-app-devopsified$ curl go-web-app.local/courses
 
     - We would have needed to create one folder for each env.
 
-    
+## Installing Helm
+
+**For Debian/Ubuntu**:
+
+```bash
+HELM_BUILDKITE_APT_KEY_ID="DDF78C3E6EBB2D2CC223C95C62BA89D07698DBC6"
+
+sudo apt-get install curl gpg apt-transport-https --yes
+
+curl -fsSL https://packages.buildkite.com/helm-linux/helm-debian/gpgkey > "${TMPDIR:-/tmp}/helm.gpg"
+
+# Ensure that the key ID matches to prevent a repository compromise from establishing an attacker controlled key
+if [ "$(gpg --show-keys --with-colons "${TMPDIR:-/tmp}/helm.gpg" | awk -F: '$1 == "fpr" {print $10}' | head -n 1)" != "${HELM_BUILDKITE_APT_KEY_ID}" ]; then echo "ERROR: Unexpected Helm APT key ID: potential key compromise"; exit 1; fi
+
+cat "${TMPDIR:-/tmp}/helm.gpg" | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
+echo "deb [signed-by=/usr/share/keyrings/helm.gpg] https://packages.buildkite.com/helm-linux/helm-debian/any/ any main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+
+sudo apt-get update
+sudo apt-get install helm
+```
+
+For other systems: [Documentation](https://helm.sh/docs/intro/install/)
 
 
+**After installation, verify**:
+```
+chucky@Dell:~/simple-go-web-app-devopsified$ helm version
+version.BuildInfo{Version:"v3.18.4", GitCommit:"d80839cf37d860c8aa9a0503fe463278f26cd5e2", GitTreeState:"clean", GoVersion:"go1.24.4"}
+```
+
+### Helm initialization
+
+```
+chucky@Dell:~/simple-go-web-app-devopsified/helm$ helm create go-web-app-chart
+Creating go-web-app-chart
+```
+
+**As soon as the creation is over, we can see the a lot of files and folders getting created inside it:**
+
+---
+
+<img width="306" height="534" alt="image" src="https://github.com/user-attachments/assets/47a8f833-565b-4668-988c-ef3a65fa79f2" />
+
+---
+---
+
+**We remove the charts directory**:
+
+```bash
+rm -rf charts/
+```
+
+**Delete everything inside the templates directory and copy all of our k8s manifests that we created:**
+
+```bash
+cd templates/
+rm -rf *
+```
+
+```bash
+chucky@Dell:~/simple-go-web-app-devopsified/helm/go-web-app-chart/templates$ cp ../../../k8s/manifests/* .
+chucky@Dell:~/simple-go-web-app-devopsified/helm/go-web-app-chart/templates$ ls
+--> deployment.yaml  ingress.yaml  service.yaml
+```
+
+## Variabalizing our values
+
+Inside the `deployment.yaml` under the `templates` directory:
+
+```yaml
+    spec:
+      containers:
+      - image: nayanjk/go-web-app:{{ .Values.image.tag }}
+        name: nginx
+        ports:
+        - containerPort: 8080
+```
+
+Whatever portion we want to variabalize, we can variabalize them and then update the same in the `values.yaml` file:
+
+  - We will delete all the default content in the `values.yaml` file and add something of our own:
+
+```yaml
+replicaCount: 1
+
+image:
+  repository: nayanjk/go-web-app
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  # tag: "10016307834"  # Not just a random number (explained below)
+  tag: "v1"  # because our current tag is v1
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+```
+```
+tag: "10016307834" -> This number is not just a random number - it has its significance - we'll see it clearly in the CI/CD part
+So what happens is, every time the CI/CD is run, we'll update the Values.yaml with the latest image that we create during the CI 
+And with the help of ArgoCD the image with the latest tag will be deployed
+```
 
 
-
-
-
-
-
+### Verifying the proper working of our Helm
 
 
 
