@@ -11,6 +11,6 @@ spec:
     targetPort: 8080  # Port of the application
   selector:
     app: go-web-app
-  # type: ClusterIp
-  type: NodePort
+  type: ClusterIp
+  # type: NodePort
 

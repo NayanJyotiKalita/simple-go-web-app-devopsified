@@ -593,7 +593,7 @@ And with the help of ArgoCD the image with the latest tag will be deployed
 ```
 
 
-### Verifying the proper working of our Helm
+## Verifying the proper working of our Helm
 
 
 
