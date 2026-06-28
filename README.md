@@ -729,7 +729,7 @@ You can check out the entire file here: [ci.yaml](.github/workflows/ci.yaml) </b
 ### Secrets added in the repo for the github workflow to fetch
 ---
 
-<img width="917" height="212" alt="image" src="https://github.com/user-attachments/assets/73cd1256-5970-4a79-9bb1-c244feee92ef" />
+<img width="921" height="229" alt="image" src="https://github.com/user-attachments/assets/32af666b-eddf-493e-be18-a8f442c51a70" />
 
 ---
 
