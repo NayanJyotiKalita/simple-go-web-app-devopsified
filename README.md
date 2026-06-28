@@ -695,7 +695,7 @@ You can check out the entire file here: [ci.yaml](.github/workflows/ci.yaml) </b
 
         steps:
         - name: Checkout Repository
-          uses: actions/checkout@v7
+          uses: actions/checkout@v6
 
         - name: Set up Docker Buildx
           uses: docker/setup-buildx-action@v4
@@ -733,7 +733,57 @@ You can check out the entire file here: [ci.yaml](.github/workflows/ci.yaml) </b
 
 ---
 
+## Testing the CI part:
 
+```
+chucky@Dell:~/simple-go-web-app-devopsified$ git add .
+chucky@Dell:~/simple-go-web-app-devopsified$ git commit -m "Adding and Testing CI"
+[main 933e786] Adding and Testing CI
+ 2 files changed, 157 insertions(+)
+ create mode 100644 .github/workflows/ci.yaml
+chucky@Dell:~/simple-go-web-app-devopsified$ git push -o origin
+Enumerating objects: 8, done.
+Counting objects: 100% (8/8), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (4/4), done.
+Writing objects: 100% (6/6), 2.11 KiB | 2.11 MiB/s, done.
+Total 6 (delta 2), reused 0 (delta 0), pack-reused 0
+remote: Resolving deltas: 100% (2/2), completed with 2 local objects.
+To https://github.com/NayanJyotiKalita/simple-go-web-app-devopsified.git
+   f51a931..933e786  main -> main
+```
+
+**Troubleshooting**:
+  - Came across a little error:
+
+---
+
+<img width="1859" height="946" alt="image" src="https://github.com/user-attachments/assets/6028c8a4-7b71-40d9-bd73-955fd66873b4" />
+
+---
+---
+
+  - Fixed the error in the shown version
+  - Fixed a few errors in the testing part --> understood the importance of **three dots** in Go **(./..)**
+  - Fixed a few version errors in the checkout action
+
+**And finally:**
+
+---
+
+<img width="1304" height="873" alt="image" src="https://github.com/user-attachments/assets/1dac56c7-e569-42b5-8565-f21f318b3a7d" />
+
+---
+---
+
+**We will check our Docker Hub Registry whether the Docker Image with the appropriate tag is pushed or not**:
+
+---
+
+<img width="1585" height="805" alt="image" src="https://github.com/user-attachments/assets/58c4161f-6657-4ca7-ba5b-e92fd6d15ab0" />
+
+---
+---
 
 
 
