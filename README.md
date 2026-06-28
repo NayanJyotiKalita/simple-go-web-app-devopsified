@@ -680,6 +680,9 @@ service/kubernetes   ClusterIP   10.100.0.1   <none>        443/TCP   2d3h
 
   - **ArgoCD will pull the Helm Chart as soon as Helm (values.yaml) tag is updated and deploy it on to the Kubernetes cluster** 
 
+---
+
+## CI
 
 ### Wrote the Entire CI pipeline to Build, Code Analysis, Creating Docker Image 
 
@@ -785,13 +788,204 @@ To https://github.com/NayanJyotiKalita/simple-go-web-app-devopsified.git
 ---
 ---
 
+### This resulted in the same tag with the github run_id being updated in the values.yaml file:
 
+<img width="1328" height="174" alt="image" src="https://github.com/user-attachments/assets/a0ce3707-7f9f-4085-ab26-fdd8b599e8f0" />
 
+---
+---
 
+## CD
 
+**We install ArgoCD**:
 
+```bash
+kubectl create namespace argocd
+kubectl apply -n argocd --server-side --force-conflicts -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+```
 
+### Setting up the Service for LoadBalancer
+```
+chucky@Dell:~/simple-go-web-app-devopsified$ kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}'
+service/argocd-server patched
+```
 
+---
 
+<img width="1520" height="441" alt="image" src="https://github.com/user-attachments/assets/b239aa76-2022-4e75-835c-d2f794c9eb69" />
 
+---
+---
 
+**Once we try to access our ArgoCD using the external IP provided to us, we are prompted to type username and password**:
+
+---
+
+<img width="1918" height="792" alt="Screenshot 2026-06-28 193813" src="https://github.com/user-attachments/assets/43de8cc6-8ce2-4d43-921e-20e6f2832111" />
+
+---
+---
+
+- The username can be `admin`
+- Steps for retrieving the password is given below:
+
+```
+chucky@Dell:~/simple-go-web-app-devopsified$ k get secrets -n argocd
+NAME                          TYPE     DATA   AGE
+argocd-initial-admin-secret   Opaque   1      13m
+argocd-notifications-secret   Opaque   0      14m
+argocd-redis                  Opaque   1      13m
+argocd-secret                 Opaque   5      14m
+
+chucky@Dell:~/simple-go-web-app-devopsified$ k edit secret -n argocd argocd-initial-admin-secret
+```
+
+- Copy the password from the file
+- The password is base64 encoded
+- We need to decode it:
+
+```
+chucky@Dell:~/simple-go-web-app-devopsified$ echo password | base64 --decode
+```
+
+- **The output is the final password and we can access our ArgoCd**
+
+---
+
+<img width="1871" height="597" alt="image" src="https://github.com/user-attachments/assets/34fd7e09-8ded-45ea-a0b4-40bb05077547" />
+
+---
+---
+
+- **Then we select on New App to create our Deployment**
+
+---
+
+<img width="1871" height="597" alt="image" src="https://github.com/user-attachments/assets/34fd7e09-8ded-45ea-a0b4-40bb05077547" />
+
+---
+---
+
+**We Configure the Argo Application as below:**
+
+---
+
+<img width="354" height="508" alt="Screenshot 2026-06-28 230311" src="https://github.com/user-attachments/assets/1f4bccb8-18f8-42f8-aa3d-6ff3e9cff33e" />
+
+---
+---
+
+<img width="788" height="857" alt="image" src="https://github.com/user-attachments/assets/3cf1ac96-350f-47a9-8177-ec21ef91eb82" />
+
+---
+---
+
+## All done with CD:
+
+***Make sure the ingress-controller is running otherwise ingress won't be able to get the DNS name**
+
+---
+
+<img width="1871" height="626" alt="image" src="https://github.com/user-attachments/assets/51306706-954d-4692-967c-6c103d06d573" />
+
+---
+---
+
+**We can see our resources:**
+
+---
+
+<img width="1202" height="360" alt="image" src="https://github.com/user-attachments/assets/b35039da-ec8d-4d7a-b778-11de4b3b391e" />
+
+---
+---
+
+### We can access our website:
+
+```bash
+chucky@Dell:~/simple-go-web-app-devopsified$ curl go-web-app.local/courses
+<DocType html>
+
+<html>
+    <head>
+        <title>Learn DevOps from Basics</title>
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+            }
+    
+```
+
+#### DNS mapping in the /etc/hosts is still required as our system doesn't understand what go-web-app.local means
+#### In production environment, we will buy a domain and map it e.g.:
+
+```
+go-web-app.com
+        │
+        ▼
+a4a31af79657346d08d198d7a8999102.elb.us-west-2.amazonaws.com
+```
+
+---
+---
+---
+
+# Entire CI/CD pipeline flow
+
+- We make a tiny change in the static folder - `courses.html`:
+```html
+<DocType html>
+
+<html>
+    <head>
+        <title>Learn DevOps from Basics with Nayan</title>
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+            }
+```
+
+#### As soon as it is committed, it will trigger the CI part of GitHub Action:
+
+---
+
+<img width="1274" height="491" alt="image" src="https://github.com/user-attachments/assets/b3433bf5-cdda-457c-94d3-461f8c148c91" />
+
+---
+---
+
+#### This process will lead to a new Docker image being built and pushed:
+
+---
+
+<img width="1564" height="770" alt="image" src="https://github.com/user-attachments/assets/43e5d8ca-881d-47c8-94db-f5707b3bdcd5" />
+
+---
+---
+
+#### Leading to changes in the Helm's values.yaml file with the latest tag:
+
+```yaml
+image:
+  repository: nayanjk/go-web-app
+  pullPolicy: IfNotPresent
+  tag: "28332165890"
+```
+
+#### Now this change in the Helm values.yaml will be fetched by ArgoCD and deployed on to the Kubernetes:
+
+- We can verify it by looking at the deployment:
+
+---
+
+<img width="442" height="170" alt="image" src="https://github.com/user-attachments/assets/c1afb1c5-64d6-4d6a-b65b-68345a138797" />
+
+---
+**Also**
+---
+
+<img width="690" height="248" alt="image" src="https://github.com/user-attachments/assets/978bf394-1af1-4f93-a876-e58b763f3741" />
+
+---
