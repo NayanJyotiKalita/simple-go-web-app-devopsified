@@ -595,6 +595,48 @@ And with the help of ArgoCD the image with the latest tag will be deployed
 
 ## Verifying the proper working of our Helm
 
+  - We have our kubernetes resources
+  - We will delete those
+  - We will create the resources using Helm
+
+```
+chucky@Dell:~/simple-go-web-app-devopsified/k8s/manifests$ k get all
+NAME                              READY   STATUS    RESTARTS   AGE
+pod/go-web-app-784bd6b777-fhkqv   1/1     Running   0          20m
+
+NAME                 TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
+service/go-web-app   NodePort    10.100.137.79   <none>        80:31377/TCP   2m52s
+service/kubernetes   ClusterIP   10.100.0.1      <none>        443/TCP        56m
+
+NAME                         READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/go-web-app   1/1     1            1           20m
+
+NAME                                    DESIRED   CURRENT   READY   AGE
+replicaset.apps/go-web-app-784bd6b777   1         1         1       21m
+```
+
+```
+chucky@Dell:~/simple-go-web-app-devopsified/k8s/manifests$ k delete deploy go-web-app
+deployment.apps "go-web-app" deleted
+chucky@Dell:~/simple-go-web-app-devopsified/k8s/manifests$ k delete svc go-web-app
+service "go-web-app" deleted
+chucky@Dell:~/simple-go-web-app-devopsified/k8s/manifests$ k delete ingress go-web-app
+ingress.networking.k8s.io "go-web-app" deleted
+chucky@Dell:~/simple-go-web-app-devopsified/k8s/manifests$ k get all
+NAME                 TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+service/kubernetes   ClusterIP   10.100.0.1   <none>        443/TCP   70m
+```
+
+**Deploying resources using Helm**:
+
+---
+
+<img width="845" height="486" alt="image" src="https://github.com/user-attachments/assets/dc45ce9c-209f-4554-8846-882700176914" />
+
+---
+---
+
+
 
 
 
