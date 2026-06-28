@@ -76,7 +76,7 @@ jobs:
         - name: Checkout Repository
           uses: actions/checkout@v6
           with:
-            token: ${{ secrets.TOKEN }}
+            token: ${{ secrets.TOKEN_GITHUB }}
 
         - name: Update tag in Helm chart
           run: |
