@@ -636,6 +636,38 @@ service/kubernetes   ClusterIP   10.100.0.1   <none>        443/TCP   70m
 ---
 ---
 
+**Inside our Deployment, we can see the image being used at the same as that of what we uploaded into our registry with tag v1 even though we have variabalized the tag in the deployment.yaml file**
+
+---
+
+<img width="549" height="257" alt="image" src="https://github.com/user-attachments/assets/34cbf738-59f9-4ded-934a-53b4ce23a6dd" />
+
+---
+```yaml
+spec:
+      containers:
+      - image: nayanjk/go-web-app:{{ .Values.image.tag }}
+        name: nginx
+        ports:
+        - containerPort: 8080
+```
+---
+
+## Cleanup of Resources using Helm
+
+```
+chucky@Dell:~/simple-go-web-app-devopsified$ helm uninstall go-web-app
+release "go-web-app" uninstalled
+chucky@Dell:~/simple-go-web-app-devopsified$ k get all
+NAME                 TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+service/kubernetes   ClusterIP   10.100.0.1   <none>        443/TCP   2d3h
+```
+
+---
+---
+---
+
+
 
 
 
