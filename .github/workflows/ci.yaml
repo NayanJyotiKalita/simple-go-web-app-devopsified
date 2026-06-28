@@ -1,0 +1,95 @@
+name: CI
+
+on:
+    push:
+        branches:
+            - main
+        paths-ignore:
+            - "README.md"
+            - "helm/**"
+            - "k8s/**"
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+
+        steps:
+        - name: Checkout resository
+          uses: actions/checkout@v7
+
+        - name: Set up Go 1.26
+          uses: actions/setup-go@v6
+          with:
+            go-version: 1.26
+
+        - name: Build
+          run: go build -o go-web-app
+
+        - name: Test
+          run: go test ./.. 
+
+    code-quality:
+        runs-on: ubuntu-latest
+
+        steps:
+        - name: Checkout repository
+          uses: actions/checkout@v7
+
+        - name: Run golangci-lint
+          uses: golangci/golangci-lint-action@v9
+          with:
+            version: 2.11.4
+
+    push-docker:
+        runs-on: ubuntu-latest
+
+        needs: build
+
+        steps:
+        - name: Checkout Repository
+          uses: actions/checkout@v7
+
+        - name: Set up Docker Buildx
+          uses: docker/setup-buildx-action@v4
+
+        - name: Login to Docker Hub
+          uses: docker/login-action@v4
+          with:
+            username: ${{ secrets.DOCKERHUB_USERNAME }}
+            password: ${{ secrets.DOCKERHUB_TOKEN }}
+            
+        - name: Build and Push action
+          uses: docker/build-push-action@v7
+          with:
+            context: .
+            file: ./Dockerfile
+            push: true
+            tags: ${{ secrets.DOCKERHUB_USERNAME }}/go-web-app:${{ github.run_id }}  # run_id: Here comes the importance of the random number that we wrote in our values.yaml file - every commit that the developer creates, a new docker image is created and the tag of that image would be dependent on this argument
+            # Every commit is unique - the tag that is created with each commit is different - if 100 new docker images are created and they are pushed into the registry with the `github.run_id`
+
+    update-newtag-in-helm-chart:
+        runs-on: ubuntu-latest
+
+        needs: push-docker
+
+        steps:
+        - name: Checkout Repository
+          uses: actions/checkout@v7
+          with:
+            token: ${{ secrets.TOKEN }}
+
+        - name: Update tag in Helm chart
+          run: |
+            sed -i 's/tag: .*/tag: "${{ github.run_id }}"/' helm/go-web-app-chart/values.yaml
+
+        - name: Commit and push changes
+          run: |
+            git config --global user.email "nayanjyotikalita170@gmail.com"
+            git config --global user.name "NayanJyotiKalita"
+            git add helm/go-web-app-chart/values.yaml
+            git commit -m "Update tag in the Helm Chart"
+            git push
+
+
+
+

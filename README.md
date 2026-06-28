@@ -667,9 +667,71 @@ service/kubernetes   ClusterIP   10.100.0.1   <none>        443/TCP   2d3h
 ---
 ---
 
+# CI/CD
+
+## CI - Using GitHub Actions
+
+  - **Build and Unit Test**
+  - **Static Code Analysis**
+  - **Create Docker Image and Push it**
+  - **Update Helm with our Docker Image**
+
+## CD - Using ArgoCd
+
+  - **ArgoCD will pull the Helm Chart as soon as Helm (values.yaml) tag is updated and deploy it on to the Kubernetes cluster** 
 
 
+### Wrote the Entire CI pipeline to Build, Code Analysis, Creating Docker Image 
 
+You can check out the entire file here: [ci.yaml](.github/workflows/ci.yaml) </br>
+
+**We used a few secrets to avoid hardcoding of sensitive information**:
+
+```yaml
+    push-docker:
+        runs-on: ubuntu-latest
+
+        needs: build
+
+        steps:
+        - name: Checkout Repository
+          uses: actions/checkout@v7
+
+        - name: Set up Docker Buildx
+          uses: docker/setup-buildx-action@v4
+
+        - name: Login to Docker Hub
+          uses: docker/login-action@v4
+          with:
+            username: ${{ secrets.DOCKERHUB_USERNAME }}
+            password: ${{ secrets.DOCKERHUB_TOKEN }}
+            
+        - name: Build and Push action
+          uses: docker/build-push-action@v7
+          with:
+            context: .
+            file: ./Dockerfile
+            push: true
+            tags: ${{ secrets.DOCKERHUB_USERNAME }}/go-web-app:${{ github.run_id }}  
+
+    update-newtag-in-helm-chart:
+        runs-on: ubuntu-latest
+
+        needs: push-docker
+
+        steps:
+        - name: Checkout Repository
+          uses: actions/checkout@v7
+          with:
+            token: ${{ secrets.TOKEN_GITHUB }}  # Github Personal Access Token
+```
+
+### Secrets added in the repo for the github workflow to fetch
+---
+
+<img width="917" height="212" alt="image" src="https://github.com/user-attachments/assets/73cd1256-5970-4a79-9bb1-c244feee92ef" />
+
+---
 
 
 
