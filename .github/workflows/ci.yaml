@@ -5,9 +5,10 @@ on:
         branches:
             - main
         paths-ignore:
-            - "README.md"
-            - "helm/**"
-            - "k8s/**"
+            # - "README.md"
+            # - "helm/**"
+            # - "k8s/**"
+            - '**'  # Added temporarily so that any random changes made by the dev doesn't trigger the pipeline, the above the commented due to the same reason
 
 jobs:
     build:
