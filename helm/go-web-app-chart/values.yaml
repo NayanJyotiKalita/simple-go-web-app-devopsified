@@ -8,8 +8,8 @@ image:
   repository: nayanjk/go-web-app
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  # tag: "29083458340"
-  tag: "29083458340"
+  # tag: "29084394436"
+  tag: "29084394436"
 
 ingress:
   enabled: false
@@ -25,7 +25,7 @@ ingress:
 
 
 
-# tag: "29083458340"
+# tag: "29084394436"
 # So what happens is, every time the CI/CD is run, we'll update the Values.yaml with the latest image that we create during the CI 
 # And with the help of ArgoCD the image with the latest tag will be deployed
 
