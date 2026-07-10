@@ -117,7 +117,7 @@ CMD [ "./main" ]
 ---
 ---
 
-# Kubernetes Manifests
+# 2. Kubernetes Manifests
 
 - We have written Kubernetes manifest files:
     - [deployment.yaml](/k8s/manifests/deployment.yaml)    # For our application with labels, selectors, and containerPort as 8080
