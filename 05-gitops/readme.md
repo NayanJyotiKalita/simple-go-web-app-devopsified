@@ -634,6 +634,177 @@ So local hostname mapping in `/etc/hosts` was still required for testing the ing
 
 ---
 
+# End-to-End CI/CD Flow Validation
+
+Up to this point, the CI and CD pieces had been implemented individually:
+
+* GitHub Actions could build, test, and push a Docker image
+* the workflow could update the Helm chart with the latest image tag
+* ArgoCD could watch the Helm chart and deploy it into Kubernetes
+
+But a CI/CD pipeline is not truly validated until a **real application change** flows through the entire system automatically.
+
+This final test was used to confirm that the complete GitOps workflow was working from **source code change → CI → Docker image → Helm update → ArgoCD sync → Kubernetes deployment**.
+
+---
+
+## Step 1 — Make a Small Change in the Application
+
+To verify the pipeline, a tiny change was made inside the static application content in `static/courses.html`:
+
+```html
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Learn DevOps from Basics with Nayan</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+      }
+```
+
+This was enough to create a new application revision and trigger the CI workflow once committed and pushed.
+
+---
+
+## Step 2 — GitHub Actions CI Pipeline Gets Triggered
+
+As soon as the change was committed and pushed to GitHub, the GitHub Actions workflow started automatically.
+
+At this point, the CI pipeline performed the same stages defined earlier:
+
+* checkout the repository
+* build and test the Go application
+* run static code analysis
+* build a fresh Docker image
+* push the image to Docker Hub
+* update the Helm chart with the new image tag
+
+### CI Triggered Successfully
+
+```md
+<img width="1274" height="491" alt="image" src="https://github.com/user-attachments/assets/b3433bf5-cdda-457c-94d3-461f8c148c91" />
+```
+
+---
+
+## Step 3 — A New Docker Image Is Built and Pushed
+
+After the CI workflow completed the build and packaging stages, a **new Docker image** was created and pushed to Docker Hub.
+
+The image was tagged using the GitHub Actions run ID, which keeps every build uniquely identifiable.
+
+### New Docker Image Pushed
+
+```md
+<img width="1564" height="770" alt="image" src="https://github.com/user-attachments/assets/43e5d8ca-881d-47c8-94db-f5707b3bdcd5" />
+```
+
+This step confirms that the updated application code has been converted into a fresh deployable container image.
+
+---
+
+## Step 4 — Helm `values.yaml` Is Updated with the New Image Tag
+
+Once the Docker image was pushed successfully, the CI workflow updated the Helm chart so that the deployment would point to the new image version.
+
+Example of the updated `values.yaml`:
+
+```yaml
+image:
+  repository: nayanjk/go-web-app
+  pullPolicy: IfNotPresent
+  tag: "28332165890"
+```
+
+This is the **GitOps handoff point** in the pipeline.
+
+Instead of directly deploying to Kubernetes, the CI pipeline updates the desired deployment state in Git by writing the new image tag into the Helm chart.
+
+---
+
+## Step 5 — ArgoCD Detects the Helm Change
+
+Now that `values.yaml` contains the latest image tag, ArgoCD detects that the Git repository has changed.
+
+ArgoCD then:
+
+* pulls the updated Helm chart
+* notices that the desired image tag is different from the currently deployed version
+* syncs the new desired state into the Kubernetes cluster
+
+At this stage, ArgoCD becomes the bridge between **Git** and **Kubernetes**.
+
+---
+
+## Step 6 — Kubernetes Deploys the Updated Application Version
+
+Once ArgoCD syncs the updated Helm chart, Kubernetes rolls out the updated Deployment using the newly pushed Docker image.
+
+This can be verified directly in the Kubernetes Deployment by checking that the image tag now matches the one written by the CI pipeline.
+
+### Deployment Updated with the New Image Tag
+
+```md
+<img width="442" height="170" alt="image" src="https://github.com/user-attachments/assets/c1afb1c5-64d6-4d6a-b65b-68345a138797" />
+```
+
+### Additional Deployment Verification
+
+```md
+<img width="690" height="248" alt="image" src="https://github.com/user-attachments/assets/978bf394-1af1-4f93-a876-e58b763f3741" />
+```
+
+This confirms that the image built during CI is the same image now being used by the running Kubernetes workload.
+
+---
+
+# Final End-to-End Flow
+
+So the complete automated pipeline now works like this:
+
+```text
+Developer changes application code
+        ↓
+Code is committed and pushed to GitHub
+        ↓
+GitHub Actions CI pipeline starts
+        ↓
+Application is built and tested
+        ↓
+A new Docker image is built and pushed to Docker Hub
+        ↓
+Helm values.yaml is updated with the new image tag
+        ↓
+Updated Helm chart is committed back to GitHub
+        ↓
+ArgoCD detects the Git change
+        ↓
+ArgoCD syncs the updated Helm chart
+        ↓
+Kubernetes deploys the new image version
+```
+
+---
+
+# Why This Step Matters
+
+This final validation is one of the most important parts of the project because it proves that the CI/CD setup is not just theoretically correct — it actually works in practice.
+
+It confirms that:
+
+* a real source code change can trigger the full pipeline
+* the CI workflow builds a fresh image automatically
+* the Helm chart is updated without manual intervention
+* ArgoCD picks up the Git change automatically
+* Kubernetes deploys the new version without manually running `kubectl apply` or `kubectl set image`
+
+In other words, this is the step that proves the project is running as a **real GitOps-based CI/CD pipeline**, not just a collection of individual tools configured separately.
+
+
+---
+
 # What Would Happen in Production
 
 In a real production environment, this manual hostname mapping would not be used.
