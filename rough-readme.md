@@ -1,82 +1,373 @@
-Before trying to do any Containerization, we first try to run the application in our local system whether it works - It's a very crucial step:
+# 🚀 Simple Go Web App — DevOpsified
+
+A production-style DevOps implementation of a **Go web application**, taking it from **local development → Docker containerization → Kubernetes deployment on Amazon EKS → Helm templating → CI with GitHub Actions → CD with ArgoCD**.
+
+This project was built as a complete hands-on exercise to understand not just deployment, but the **entire software delivery lifecycle** of an application — including the **real troubleshooting journey** around Kubernetes Services, NodePort, Ingress, ELB hostname mapping, and WSL/Windows DNS resolution.
 
 ---
 
-<img width="755" height="218" alt="Screenshot 2026-06-17 165006" src="https://github.com/user-attachments/assets/3bf1be65-d191-4f24-bdc4-b2ad0cd43bae" />
+# 📌 Table of Contents
+
+* [Project Overview](#-project-overview)
+* [Key Features](#-key-features)
+* [Tech Stack](#-tech-stack)
+* [Architecture](#-architecture)
+* [Project Structure](#-project-structure)
+* [Prerequisites](#-prerequisites)
+* [Application Workflow](#-application-workflow)
+* [1. Local Application Testing](#1-local-application-testing)
+* [2. Containerization with Docker](#2-containerization-with-docker)
+* [3. Kubernetes Deployment on EKS](#3-kubernetes-deployment-on-eks)
+* [4. Exposing the Application](#4-exposing-the-application)
+
+  * [Using NodePort for Initial Testing](#using-nodeport-for-initial-testing)
+  * [Using Ingress + AWS Load Balancer](#using-ingress--aws-load-balancer)
+* [5. Helm Charting](#5-helm-charting)
+* [6. CI with GitHub Actions](#6-ci-with-github-actions)
+* [7. CD with ArgoCD](#7-cd-with-argocd)
+* [8. End-to-End CI/CD Flow](#8-end-to-end-cicd-flow)
+* [How to Run This Project](#-how-to-run-this-project)
+* [Troubleshooting Summary](#-troubleshooting-summary)
+* [Key Learnings from This Project](#-key-learnings-from-this-project)
+* [Future Improvements](#-future-improvements)
 
 ---
+
+# 📖 Project Overview
+
+This repository demonstrates how to take a simple Go web application and progressively transform it into a **production-style, automated deployment pipeline**.
+
+The project includes:
+
+* Running and validating the application locally
+* Writing a **multi-stage Dockerfile**
+* Building and pushing the image to **Docker Hub**
+* Creating Kubernetes manifests for:
+
+  * **Deployment**
+  * **Service**
+  * **Ingress**
+* Deploying the application on **Amazon EKS**
+* Exposing the application using **NodePort** and then **Ingress**
+* Installing and using **NGINX Ingress Controller**
+* Converting raw Kubernetes manifests into a **Helm chart**
+* Creating a **CI pipeline with GitHub Actions**
+* Using **ArgoCD for continuous delivery**
+* Automatically updating Helm image tags through CI
+* Troubleshooting real-world issues such as:
+
+  * NodePort inaccessibility
+  * Security Group misconfiguration
+  * Ingress hostname resolution issues
+  * WSL vs Windows `/etc/hosts` confusion
+
 ---
 
-But we see error:
+# ✨ Key Features
+
+* **Go Web Application** served on port `8080`
+* **Multi-stage Docker build** using a **distroless runtime image**
+* **Kubernetes Deployment** on **Amazon EKS**
+* **Service exposure** via ClusterIP, NodePort, and Ingress
+* **NGINX Ingress Controller** backed by AWS Load Balancer
+* **Helm templating** for reusable and environment-friendly deployments
+* **CI pipeline with GitHub Actions** for:
+
+  * Build
+  * Test
+  * Docker image push
+  * Helm chart image tag update
+* **CD pipeline with ArgoCD** for automated deployment sync
+* End-to-end **GitOps-style flow**
+* Detailed documentation of **troubleshooting and debugging steps**
+
 ---
 
-<img width="672" height="128" alt="Screenshot 2026-06-17 164851" src="https://github.com/user-attachments/assets/74992959-9f41-431e-a955-45a0ca884689" />
+# 🛠 Tech Stack
+
+## Application
+
+* **Go**
+* HTML/CSS static frontend
+
+## Containerization
+
+* **Docker**
+* **Distroless base image**
+
+## Orchestration / Deployment
+
+* **Kubernetes**
+* **Amazon EKS**
+* **NGINX Ingress Controller**
+
+## Packaging / Templating
+
+* **Helm**
+
+## CI/CD
+
+* **GitHub Actions**
+* **Docker Hub**
+* **ArgoCD**
+
+## Cloud / Platform
+
+* **AWS EC2 / EKS / ELB**
 
 ---
+
+# 🏗 Architecture
+
+## High-level flow
+
+```text
+Developer Commit
+      │
+      ▼
+GitHub Repository
+      │
+      ▼
+GitHub Actions (CI)
+ ├── Build Go App
+ ├── Run Tests
+ ├── Build Docker Image
+ ├── Push Docker Image to Docker Hub
+ └── Update Helm values.yaml with latest image tag
+      │
+      ▼
+GitHub Repository (updated Helm values)
+      │
+      ▼
+ArgoCD (CD)
+ └── Detects Helm chart changes and syncs to cluster
+      │
+      ▼
+Amazon EKS
+ ├── Deployment
+ ├── Service
+ └── Ingress
+      │
+      ▼
+NGINX Ingress Controller
+      │
+      ▼
+AWS Load Balancer
+      │
+      ▼
+Application accessible via hostname
+```
+
 ---
 
-This is why testing it in our local system is important, because in this case, the developer has mentioned that we can access the application under the path `http://localhost:8080/courses` in our browser or `curl http://localhost:8080/courses` in the terminal
+# 📂 Project Structure
+
+```bash
+simple-go-web-app-devopsified/
+├── .github/
+│   └── workflows/
+│       └── ci.yaml                  # CI workflow
+|
+├── 01-local-testing
+│   └── readme.md
+|
+├── 02-containerization
+│   └── readme.md
+|
+├── 03-k8s
+│   ├── manifests
+│   │   ├── deployment.yaml
+│   │   ├── ingress.yaml
+│   │   └── service.yaml
+│   └── readme.md
+|
+├── 04-helm
+│   ├── go-web-app-chart
+│   │   ├── Chart.yaml
+│   │   ├── templates
+│   │   │   ├── deployment.yaml
+│   │   │   ├── ingress.yaml
+│   │   │   └── service.yaml
+│   │   └── values.yaml
+│   └── readme.md
+|
+├── 05-gitops
+│   ├── argocd
+│   │   └── argo-setup.md
+│   └── readme.md
+|
+├── 06-troubleshooting
+│   └── readme.md
+|
+├── Dockerfile
+|
+├── EKS
+│   ├── 1-prerequisites.md
+│   └── 2-installing&deleting-eks.md
+|
+├── README.md
+├── go.mod
+├── main.go
+├── main_test.go
+└── static/           # Static frontend assets
+```
 
 ---
 
-<img width="1538" height="773" alt="image" src="https://github.com/user-attachments/assets/9ce6f769-ae45-4e35-95ca-47d0186633fd" />
+# 📋 Prerequisites
+
+Before running this project, make sure you have the following tools installed.
+
+## Local Development
+
+* **Go** `1.26+`
+* **Docker**
+* **Git**
+
+## Kubernetes / Cloud
+
+* **kubectl**
+* **eksctl**
+* **AWS CLI**
+* **An AWS account** with permissions to create:
+
+  * EKS clusters
+  * EC2 worker nodes
+  * Load Balancers
+  * Security Group rules
+
+## Packaging / CD
+
+* **Helm**
+* **ArgoCD**
+
+## Optional / Recommended
+
+* Docker Hub account
+* GitHub Personal Access Token for workflow automation
+* WSL / Linux terminal if working on Windows
+
+---
+
+# 🔄 Application Workflow
+
+The application exposes a Go web service that serves a web page at:
+
+```bash
+http://localhost:8080/courses
+```
+
+This route is important because it becomes the basis for all later validation:
+
+* local testing
+* Docker testing
+* Kubernetes testing
+* Ingress testing
+* CI/CD deployment verification
+
+---
+
+# 1. Local Application Testing
+
+Before touching Docker or Kubernetes, the application should first be tested locally.
+
+## Why this matters
+
+Validating the app locally helps catch:
+
+* incorrect routes
+* broken application logic
+* missing dependencies
+* incorrect assumptions about the startup command
+
+## Run locally
+
+```bash
+go run main.go
+```
+
+## Verify
+
+```bash
+curl http://localhost:8080/courses
+```
+
+If the application is healthy, it should return the HTML response for the page.
 
 ---
 
 <img width="1272" height="927" alt="image" src="https://github.com/user-attachments/assets/b628191f-044f-43bd-9a16-f12fec7ea775" />
 
 ---
+
 ---
 
-# 1. Containerization
+# 2. Containerization with Docker
 
-### Writing Dockerfile
+The application is containerized using a **multi-stage Docker build**.
 
-```Dockerfile
+## Dockerfile
+
+```dockerfile
 FROM golang:1.26 AS base
 
 WORKDIR /app
 
 COPY go.mod .
+RUN go mod download
 
-# Installing dependencies e.g. pip install -r requirements.txt in python
-RUN go mod download  
-
-# Copying the entire source code to the docker image
 COPY . .
-
 RUN go build -o main .
-# The above command will create a artifact/binary called main in the docker image
 
-
-# Final stage - Distroless image
 FROM gcr.io/distroless/base
 
-# Copying the artifact/main from the previous stage 
 COPY --from=base /app/main .
-
-# We need the static files also which consists of the HTML, CSS files which are not bundled in the binary
 COPY --from=base /app/static ./static
 
-# Exposing the port on which the application will run
 EXPOSE 8080
 
-# Command to run the application
-CMD [ "./main" ]
+CMD ["./main"]
 ```
 
-### Building and testing the image:
+---
+
+## Why this Dockerfile?
+
+### Multi-stage build
+
+The Go binary is built in the builder image, while the final runtime image remains lightweight.
+
+### Distroless image
+
+The final image contains only what is needed to run the app, reducing:
+
+* image size
+* attack surface
+* unnecessary runtime dependencies
+
+### Static assets included
+
+The application depends on HTML/CSS files from the `static/` directory, so they must also be copied into the final image.
 
 ---
 
-<img width="1776" height="485" alt="Screenshot 2026-06-17 190021" src="https://github.com/user-attachments/assets/6bf3ff47-0e9a-414f-af79-f1973cfc5e0c" />
+## Build the Docker image
 
----
----
+```bash
+docker build -t <dockerhub-username>/go-web-app:v1 .
+```
 
-<img width="937" height="910" alt="image" src="https://github.com/user-attachments/assets/13cbfdb2-75d6-4073-b280-01cc8d8f0524" />
+## Run the container locally
 
----
+```bash
+docker run -p 8080:8080 <dockerhub-username>/go-web-app:v1
+```
+
+## Test
+
+```bash
+curl http://localhost:8080/courses
+```
 ---
 
 <img width="1538" height="773" alt="Screenshot 2026-06-17 180709" src="https://github.com/user-attachments/assets/6e2676b0-95bf-4ec9-b99c-9d638fbe7c25" />
@@ -84,97 +375,71 @@ CMD [ "./main" ]
 ---
 ---
 
-### Pushing the image into the our Docker Hub:
+## Push image to Docker Hub
 
-  - Kubernetes by defualt tries to pull the images mentioned its deployments from the image registry
-  - We can also use the local image
-  - Best practice is to use the image registry
-
----
-
-<img width="872" height="471" alt="image" src="https://github.com/user-attachments/assets/33256895-339e-443b-8bed-37e6fe60e8a9" />
-
----
-
-<img width="990" height="307" alt="image" src="https://github.com/user-attachments/assets/ecf72b37-4b89-4fa0-b1d6-24b2787a6782" />
-
----
----
-
-## Common Pitfalls in this step:
-
-  - There could difference in the image version in the Dockerfile and the dependency file which could cause issue
-      - e.g. In Dockerfile: `FROM golang:1.25 AS base` but in go.mod: `go 1.26`
-
-  - There could be silly typos too whihc are sometimes frustrating to debug
-      - e.g. `FROM grc.io/distroless/base` instead of `FROM gcr.io/distroless/base`
-
----
-
-<img width="1207" height="421" alt="Screenshot 2026-06-17 185852" src="https://github.com/user-attachments/assets/a922c4c6-6638-4cbd-8405-a41441acdc22" />
-
----
----
----
-
-# 2. Kubernetes Manifests
-
-- We have written Kubernetes manifest files:
-    - [deployment.yaml](/k8s/manifests/deployment.yaml)    # For our application with labels, selectors, and containerPort as 8080
-    - [service.yaml](/k8s/manifests/service.yaml)       # ClusterIP Service to expose our pods internally for uninterrupted communication -> ServicePort: 80 and TargetPort:8080 because the application is exposed at port 8080
-    - [ingress.yaml](/k8s/manifests/ingress.yaml)       # To open our application to the external world
- 
-## Testing Our Application using NodePort Service
-
-- We need a Kubernetes cluster to test our application
-- We'll use EKS Cluster (as we are trying to implement production grade project here)
-- Before running the below command, make sure you setup the pre-requisite tools: [pre-requisites]()
-  
 ```bash
-eksctl create cluster --name <CLUSTER-NAME> --region <YOUR-REGION>
+docker login
+docker push <dockerhub-username>/go-web-app:v1
 ```
 
 ---
 
-<img width="1498" height="752" alt="image" src="https://github.com/user-attachments/assets/bae119d6-c64f-4ce1-af2e-9415ebc2f97d" />
+# 3. Kubernetes Deployment on EKS
+
+Kubernetes manifests were written for:
+
+* **Deployment**
+* **Service**
+* **Ingress**
+
+## Manifest responsibilities
+
+### `deployment.yaml`
+
+Responsible for:
+
+* creating the application pods
+* defining labels/selectors
+* specifying the Docker image
+* exposing container port `8080`
+
+### `service.yaml`
+
+Responsible for:
+
+* giving the application a stable internal endpoint
+* forwarding traffic from Service port `80` to application port `8080`
+
+### `ingress.yaml`
+
+Responsible for:
+
+* exposing the application externally
+* routing requests to the Service based on hostname/path rules
 
 ---
----
 
-All Set! Our Cluster ready with EC2 instances:
+## Create EKS cluster
 
----
+```bash
+eksctl create cluster --name <CLUSTER-NAME> --region <AWS-REGION>
+```
 
-<img width="1129" height="320" alt="image" src="https://github.com/user-attachments/assets/82abb538-a21d-49bc-8013-e8095d3ba07a" />
+Verify:
 
----
----
-
-<img width="1553" height="809" alt="image" src="https://github.com/user-attachments/assets/b21f723b-1f69-4268-9202-b271c4eabd27" />
-
----
----
-
-#### Resolved some RBAC issues by giving the necessary permission to our user to be able to access our Resources:
+```bash
+kubectl get nodes
+```
 
 ---
 
-<img width="1538" height="611" alt="image" src="https://github.com/user-attachments/assets/1f69779d-f420-48f2-b148-3a9e171536d1" />
+## Deploy manifests
 
----
----
-
-#### We can see our resources:
-
----
-
-<img width="1545" height="712" alt="image" src="https://github.com/user-attachments/assets/e5ca92f7-8295-4ed9-8731-ed7bed766c85" />
-
----
----
-
-#### Now it's time to launch our deployement and service:
-
+```bash
+kubectl apply -f k8s/manifests/deployment.yaml
+kubectl apply -f k8s/manifests/service.yaml
+kubectl apply -f k8s/manifests/ingress.yaml
+```
 ---
 
 <img width="845" height="360" alt="image" src="https://github.com/user-attachments/assets/7fea2646-2683-46d1-8124-f4649510cedf" />
@@ -182,20 +447,20 @@ All Set! Our Cluster ready with EC2 instances:
 ---
 ---
 
-**We can verify the deployment and service getting created in our Cluster**
+# 4. Exposing the Application
+
+The application was exposed in two phases:
+
+1. **NodePort** for direct connectivity testing
+2. **Ingress + AWS Load Balancer** for a more production-like access pattern
 
 ---
 
-<img width="1631" height="733" alt="image" src="https://github.com/user-attachments/assets/e9fb67d0-30fc-424b-acd4-123977f483fc" />
+# Using NodePort for Initial Testing
 
----
----
+Initially, the Service was changed from `ClusterIP` to `NodePort`.
 
-**But this way we cannot access our application because ClusteIP Service does not map/expose our application to any export ports** </br>
-
-**So we use NodePort Service to expose our application
-
-**In our service.yaml file, we change the service type from ClusterIP to NodePort**
+## Example Service
 
 ```yaml
 apiVersion: v1
@@ -204,140 +469,171 @@ metadata:
   labels:
     app: go-web-app
   name: go-web-app
+
 spec:
   ports:
-  - port: 80          # Port of the Service
-    protocol: TCP
-    targetPort: 8080  # Port of the application
+    - port: 80
+      protocol: TCP
+      targetPort: 8080
   selector:
     app: go-web-app
-  # type: CLusterIP
   type: NodePort
 ```
 
-```
-k apply -f service.yaml
-```
+## Verify the NodePort
 
-```
-chucky@Dell:~/simple-go-web-app-devopsified$ k get svc
-NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
-go-web-app   NodePort    10.100.245.61   <none>        80:32379/TCP   8h
-kubernetes   ClusterIP   10.100.0.1      <none>        443/TCP        9h
-
-chucky@Dell:~/simple-go-web-app-devopsified$ k get nodes -o wide
-NAME                                           STATUS   ROLES    AGE   VERSION               INTERNAL-IP      EXTERNAL-IP     OS-IMAGE                        KERNEL-VERSION                    CONTAINER-RUNTIME
-ip-192-168-56-151.us-west-2.compute.internal   Ready    <none>   9h    v1.34.9-eks-93b80c6   192.168.56.151   34.219.31.71    Amazon Linux 2023.12.20260611   6.12.90-120.164.amzn2023.x86_64   containerd://2.2.4+unknown
-ip-192-168-66-77.us-west-2.compute.internal    Ready    <none>   9h    v1.34.9-eks-93b80c6   192.168.66.77    35.164.247.96   Amazon Linux 2023.12.20260611   6.12.90-120.164.amzn2023.x86_64   containerd://2.2.4+unknown
+```bash
+kubectl get svc
 ```
 
-**We can take any the External IP of any of the Nodes and map it to the Port of the NodePort Service given to us i.e. 32379**
+Example output:
 
-***BUT!!!!***
+```bash
+NAME         TYPE       CLUSTER-IP      EXTERNAL-IP   PORT(S)
+go-web-app   NodePort   10.100.x.x      <none>        80:32379/TCP
+```
 
-### Error Alert! 
+## Access the app
+
+```bash
+http://<NODE-EXTERNAL-IP>:<NODEPORT>
+```
+
+Example:
+
+```bash
+http://35.164.247.96:32379
+```
+
+---
+
+## NodePort issue encountered
+
+The application still could not be reached from the browser even though the NodePort service existed.
 
 ---
 
 <img width="750" height="571" alt="Screenshot 2026-06-23 000013" src="https://github.com/user-attachments/assets/36f6f5df-0a36-4ab6-99c3-f153798d9ca0" />
 
 ---
----
 
-### TROUBLESHOOTING
+### Root cause
 
-Upong further investigation, we found that 
-  - A NodePort only opens the port on the node. AWS must also allow traffic to reach that port.
-  - First thing to check: Security Group
-    
-```
-EKS worker nodes typically allow:
-22
-80
-443
-1025-65535 (internal only)
-```
+A Kubernetes NodePort only opens a port on the node. AWS must still allow external traffic to reach that port.
 
-  - But NodePort 32379 is usually NOT open from the internet.
-  - So we check the security group of our nodes
-  - We found that it is open but only from a specific Security Group
+The missing piece was the **EC2 worker node security group**.
 
 ---
 
 <img width="1625" height="397" alt="image" src="https://github.com/user-attachments/assets/7092e11b-515f-460e-80b4-9c432909375b" />
 
 ---
----
 
-**We opened the port that is given to us by the NodePort and check**
+### Fix
+
+Open the NodePort in the security group.
+
+For example, if the NodePort is `32379`, allow inbound traffic on:
+
+```text
+TCP 32379
+```
 
 ---
 
 <img width="1642" height="356" alt="image" src="https://github.com/user-attachments/assets/8b060558-8618-4b24-8ece-23084b0beb70" />
 
 ---
----
 
-**And Finally it worked**
+Once the security group was updated, the NodePort endpoint worked successfully.
 
 ---
 
 <img width="1505" height="744" alt="image" src="https://github.com/user-attachments/assets/00132e4b-c54b-46aa-93df-08366fb37314" />
 
 ---
+---
 
-This means that our Deployment is working find!!!
+# Using Ingress + AWS Load Balancer
+
+NodePort is useful for testing, but it is not ideal for application exposure in a production-style architecture.
+
+The next step was to expose the application using an **Ingress resource** and **NGINX Ingress Controller**.
+
+## Example Ingress
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: go-web-app
+
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: go-web-app.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: go-web-app
+                port:
+                  number: 80
+```
 
 ---
 
-## Testing our Ingress file by configuring a Load Balancer
+## Install NGINX Ingress Controller
 
-```
-chucky@Dell:~/simple-go-web-app-devopsified/k8s/manifests$ k apply -f ingress.yaml 
-ingress.networking.k8s.io/go-web-app created
-
-chucky@Dell:~/simple-go-web-app-devopsified/k8s/manifests$ k get ingress
-NAME         CLASS   HOSTS              ADDRESS   PORTS   AGE
-go-web-app   nginx   go-web-app.local             80      30s
-```
-
-  - Ingress got created created sucessfully
-  - But we see the `ADDRESS` field is still blank
-  - It will be filled with the DNS name of the Load Balancer once it is configured
-  - For that we need an Ingress Controller (We actually need to implement GatewayAPI but we'll do ingress for now)
-  - Ingress Controller's Primary Responsibility is to look for an ingress resource and create a Load Balancer for it
-  - We use the below command to intall the Nginx Ingress Controller
-
-```
+```bash
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.15.1/deploy/static/provider/aws/deploy.yaml
 ```
-```
-chucky@Dell:~/simple-go-web-app-devopsified/k8s/manifests$ k get pods -n ingress-nginx
-NAME                                        READY   STATUS      RESTARTS   AGE
-ingress-nginx-controller-6fb6bc46cb-td2cl   1/1     Running     0          7m57s
-```
 
-#### NOTE:
-  - In our `service.yaml` file, we have mentioned: `host: go-web-app.local`
-  - This means that we need to be able to access our application when we run `go-web-app.local` in our browser instead of the address of the load balancer
-  - And it should request to the service which would eventually forward our request to our pods/application
+Verify:
 
+```bash
+kubectl get pods -n ingress-nginx
 ```
-chucky@Dell:~/simple-go-web-app-devopsified/k8s/manifests$ k get ingress
-NAME         CLASS   HOSTS              ADDRESS                                                                         PORTS   AGE
-go-web-app   nginx   go-web-app.local   af1c475d2f805413b85b38159055f2bc-f193cd6541f83b02.elb.us-west-2.amazonaws.com   80      25m
-```
-
-**We can now see that the address field is now filled with the DNS/FQDL - Fully Qualified Domain Name of the load balancer (network) whihc is created by the ingress controller
 
 ---
 
-<img width="1605" height="693" alt="Screenshot 2026-06-23 005502" src="https://github.com/user-attachments/assets/ded515bb-8b11-4eab-9483-44365d0afb96" />
+## Check Ingress
+
+```bash
+kubectl get ingress
+```
+
+Once the Ingress Controller provisions the Load Balancer, the `ADDRESS` field gets populated with an ELB DNS name.
+
+Example:
+
+```text
+af1c475d2f805413b85b38159055f2bc-f193cd6541f83b02.elb.us-west-2.amazonaws.com
+```
 
 ---
+
+## Hostname-based routing
+
+The ingress rule uses:
+
+```yaml
+host: go-web-app.local
+```
+
+This means requests are expected to come in using the hostname:
+
+```bash
+http://go-web-app.local/courses
+```
+
 ---
 
-But still we cannot access our application:
+## Hostname mapping issue encountered
+
+Even after the Load Balancer was created, the application still could not be reached through `go-web-app.local`.
 
 ---
 
@@ -345,17 +641,14 @@ But still we cannot access our application:
 
 ---
 
-```
-chucky@Dell:~/simple-go-web-app-devopsified$ curl go-web-app.local/courses
-curl: (6) Could not resolve host: go-web-app.local
-```
+### Why?
 
----
+The system does not know what `go-web-app.local` means unless it is explicitly mapped through DNS or a hosts file.
 
-#### This is happening because in our Ingress file we have explicitely mentioned the host name to exactly as **go-web-app.local** 
-  - This means that we can only access our application if our host name is mapped correctly to the IP address of the Load Balancer
+### Temporary testing approach
 
-```
+Map one of the ELB IPs to the hostname:
+```sh
 chucky@Dell:~/simple-go-web-app-devopsified/k8s/manifests$ nslookup af1c475d2f805413b85b38159055f2bc-f193cd6541f83b02.elb.us-west-2.amazonaws.com
 Server:         10.255.255.254
 Address:        10.255.255.254#53
@@ -369,201 +662,94 @@ Name:   af1c475d2f805413b85b38159055f2bc-f193cd6541f83b02.elb.us-west-2.amazonaw
 Address: 52.42.84.42
 ```
 
-#### So what we do here is - we take any of the IP Address from above and map it to our host name in _/etc/hosts_ path
+```text
+52.42.84.42 go-web-app.local
 ```
-127.0.0.1       localhost
-127.0.1.1       Dell.localdomain        Dell
+
+---
+
+## WSL vs Windows hostname issue
+
+This turned out to be one of the most important troubleshooting moments in the project.
+
+### What happened
+
+The hostname mapping was added inside the **WSL** hosts file:
+
+```bash
+/etc/hosts
+```
+```vi
 52.42.84.42   go-web-app.local
 ```
 
-**We are all set but and seems like we would be able to access our application** </br>
+but the browser was running on **Windows**, which uses:
 
-***BUT!!!***
-
----
-
-<img width="720" height="637" alt="image" src="https://github.com/user-attachments/assets/06b70cc4-31d5-4446-94e0-e9440bd63db9" />
-
----
-
-
----
-
-### After some head hitting troubleshooting, I found out that it was happening due to misconfiguration with the System
-  - I am using WSL and so I configured the DNS in my WSL, no in my windows system
-  - So either I need to configure the DNS in my Windows or I can just verify in from the terminal of my WSL
-
-**IT was successful**
-
-```
-chucky@Dell:~/simple-go-web-app-devopsified$ curl go-web-app.local/courses
-<DocType html>
-
-<html>
-    <head>
-        <title>Learn DevOps from Basics</title>
-        <style>
-            body {
-                margin: 0;
-                padding: 0;
-            }
-
-            header {
-                background-color: #333;
-                color: #fff;
-                padding: 10px 0;
-                text-align: center;
-            }
-
-            nav ul {
-                list-style-type: none;
-                padding: 0;
-            }
-
-            nav ul li {
-                display: inline;
-                margin-right: 10px;
-            }
-
-            nav ul li a {
-                color: #fff;
-                text-decoration: none;
-            }
-
-            main {
-                padding: 20px;
-            }
-
-            section {
-                margin-bottom: 20px;
-            }
-
-            footer {
-                background-color: #333;
-                color: #fff;
-                text-align: center;
-                padding: 10px 0;
-                position: fixed;
-                bottom: 0;
-                width: 100%;
-            }
-        </style>
-    </head>
-    <body>
-        <header>
-            <nav>
-                <ul>
-                    <li><a href="home">Home</a></li>
-                    <li><a href="about">About</a></li>
-                    <li><a href="contact">Contact</a></li>
-                    <li><a href="courses">Courses</a></li>
-                </ul>
-            </nav>
-        </header>
-
-        <main>
-            <section>
-                <h1>Learn DevOps from Basics</h1>
-                <p>DevOps is a set of practices that combines software development (Dev) and IT operations (Ops)</p>
-                <p>It aims to shorten the systems development life cycle and provide continuous delivery with high software quality. DevOps is complementary with Agile software development; several DevOps aspects came from Agile methodology</p>    
+```text
+C:\Windows\System32\drivers\etc\hosts
 ```
 
+So:
+
+* `curl` inside WSL worked
+* the Windows browser still failed to resolve the hostname
+
+### Resolution
+
+Either:
+
+1. add the hostname mapping to the **Windows hosts file**, or
+2. test from the **WSL terminal** itself using `curl`
+
+Once the mapping was tested in the correct environment, the application was successfully accessible.
+
 ---
+
+# 5. Helm Charting
+
+After validating the raw manifests, the deployment was converted into a **Helm chart**.
+
+## Why Helm?
+
+Helm helps package Kubernetes applications in a reusable and environment-friendly way.
+
+Instead of hardcoding values directly into manifests, Helm allows you to parameterize things like:
+
+* image tags
+* replica counts
+* ingress settings
+* hostnames
+* environment-specific overrides
+
 ---
----
 
-# HELM
-
-  - Helm helps us launching the same files/configurations into different environments with ease
-
-  - It helps us in variabalizing various hardcoded values
-    - e.g. : `image: nayanjk/go-web-app:dev` for our developer environment and we `image: nayanjk/go-web-app:stage/prod` for the respective env.
-
-    - It helps us in variabalizing those env parameters with an ease reducing our efforts to write same files repeatedly
-
-    - We would have needed to create one folder for each env.
-
-## Installing Helm
-
-**For Debian/Ubuntu**:
+## Create Helm chart
 
 ```bash
-HELM_BUILDKITE_APT_KEY_ID="DDF78C3E6EBB2D2CC223C95C62BA89D07698DBC6"
-
-sudo apt-get install curl gpg apt-transport-https --yes
-
-curl -fsSL https://packages.buildkite.com/helm-linux/helm-debian/gpgkey > "${TMPDIR:-/tmp}/helm.gpg"
-
-# Ensure that the key ID matches to prevent a repository compromise from establishing an attacker controlled key
-if [ "$(gpg --show-keys --with-colons "${TMPDIR:-/tmp}/helm.gpg" | awk -F: '$1 == "fpr" {print $10}' | head -n 1)" != "${HELM_BUILDKITE_APT_KEY_ID}" ]; then echo "ERROR: Unexpected Helm APT key ID: potential key compromise"; exit 1; fi
-
-cat "${TMPDIR:-/tmp}/helm.gpg" | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
-echo "deb [signed-by=/usr/share/keyrings/helm.gpg] https://packages.buildkite.com/helm-linux/helm-debian/any/ any main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
-
-sudo apt-get update
-sudo apt-get install helm
+helm create go-web-app-chart
 ```
 
-For other systems: [Documentation](https://helm.sh/docs/intro/install/)
+Then replace the default templates with the project’s own manifests:
 
-
-**After installation, verify**:
-```
-chucky@Dell:~/simple-go-web-app-devopsified$ helm version
-version.BuildInfo{Version:"v3.18.4", GitCommit:"d80839cf37d860c8aa9a0503fe463278f26cd5e2", GitTreeState:"clean", GoVersion:"go1.24.4"}
-```
-
-### Helm initialization
-
-```
-chucky@Dell:~/simple-go-web-app-devopsified/helm$ helm create go-web-app-chart
-Creating go-web-app-chart
-```
-
-**As soon as the creation is over, we can see the a lot of files and folders getting created inside it:**
+* `deployment.yaml`
+* `service.yaml`
+* `ingress.yaml`
 
 ---
 
-<img width="306" height="534" alt="image" src="https://github.com/user-attachments/assets/47a8f833-565b-4668-988c-ef3a65fa79f2" />
+## Example templating
 
----
----
-
-**We remove the charts directory**:
-
-```bash
-rm -rf charts/
-```
-
-**Delete everything inside the templates directory and copy all of our k8s manifests that we created:**
-
-```bash
-cd templates/
-rm -rf *
-```
-
-```bash
-chucky@Dell:~/simple-go-web-app-devopsified/helm/go-web-app-chart/templates$ cp ../../../k8s/manifests/* .
-chucky@Dell:~/simple-go-web-app-devopsified/helm/go-web-app-chart/templates$ ls
---> deployment.yaml  ingress.yaml  service.yaml
-```
-
-## Variabalizing our values
-
-Inside the `deployment.yaml` under the `templates` directory:
+### `templates/deployment.yaml`
 
 ```yaml
-    spec:
-      containers:
-      - image: nayanjk/go-web-app:{{ .Values.image.tag }}
-        name: nginx
-        ports:
-        - containerPort: 8080
+containers:
+  - image: nayanjk/go-web-app:{{ .Values.image.tag }}
+    name: nginx
+    ports:
+      - containerPort: 8080
 ```
 
-Whatever portion we want to variabalize, we can variabalize them and then update the same in the `values.yaml` file:
-
-  - We will delete all the default content in the `values.yaml` file and add something of our own:
+### `values.yaml`
 
 ```yaml
 replicaCount: 1
@@ -571,90 +757,38 @@ replicaCount: 1
 image:
   repository: nayanjk/go-web-app
   pullPolicy: IfNotPresent
-  # Overrides the image tag whose default is the chart appVersion.
-  # tag: "10016307834"  # Not just a random number (explained below)
-  tag: "v1"  # because our current tag is v1
+  tag: "v1"
+
 ingress:
   enabled: false
   className: ""
   annotations: {}
-    # kubernetes.io/ingress.class: nginx
-    # kubernetes.io/tls-acme: "true"
   hosts:
     - host: chart-example.local
       paths:
         - path: /
           pathType: ImplementationSpecific
 ```
+
+---
+
+## Deploy using Helm
+
+```bash
+cd helm/go-web-app-chart
+helm install go-web-app .
 ```
-tag: "10016307834" -> This number is not just a random number - it has its significance - we'll see it clearly in the CI/CD part
-So what happens is, every time the CI/CD is run, we'll update the Values.yaml with the latest image that we create during the CI 
-And with the help of ArgoCD the image with the latest tag will be deployed
-```
-
-
-## Verifying the proper working of our Helm
-
-  - We have our kubernetes resources
-  - We will delete those
-  - We will create the resources using Helm
-
-```
-chucky@Dell:~/simple-go-web-app-devopsified/k8s/manifests$ k get all
-NAME                              READY   STATUS    RESTARTS   AGE
-pod/go-web-app-784bd6b777-fhkqv   1/1     Running   0          20m
-
-NAME                 TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
-service/go-web-app   NodePort    10.100.137.79   <none>        80:31377/TCP   2m52s
-service/kubernetes   ClusterIP   10.100.0.1      <none>        443/TCP        56m
-
-NAME                         READY   UP-TO-DATE   AVAILABLE   AGE
-deployment.apps/go-web-app   1/1     1            1           20m
-
-NAME                                    DESIRED   CURRENT   READY   AGE
-replicaset.apps/go-web-app-784bd6b777   1         1         1       21m
-```
-
-```
-chucky@Dell:~/simple-go-web-app-devopsified/k8s/manifests$ k delete deploy go-web-app
-deployment.apps "go-web-app" deleted
-chucky@Dell:~/simple-go-web-app-devopsified/k8s/manifests$ k delete svc go-web-app
-service "go-web-app" deleted
-chucky@Dell:~/simple-go-web-app-devopsified/k8s/manifests$ k delete ingress go-web-app
-ingress.networking.k8s.io "go-web-app" deleted
-chucky@Dell:~/simple-go-web-app-devopsified/k8s/manifests$ k get all
-NAME                 TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
-service/kubernetes   ClusterIP   10.100.0.1   <none>        443/TCP   70m
-```
-
-**Deploying resources using Helm**:
-
 ---
 
 <img width="845" height="486" alt="image" src="https://github.com/user-attachments/assets/dc45ce9c-209f-4554-8846-882700176914" />
 
 ---
----
 
-**Inside our Deployment, we can see the image being used at the same as that of what we uploaded into our registry with tag v1 even though we have variabalized the tag in the deployment.yaml file**
+## Remove Helm release
 
----
-
-<img width="549" height="257" alt="image" src="https://github.com/user-attachments/assets/34cbf738-59f9-4ded-934a-53b4ce23a6dd" />
-
----
-```yaml
-spec:
-      containers:
-      - image: nayanjk/go-web-app:{{ .Values.image.tag }}
-        name: nginx
-        ports:
-        - containerPort: 8080
+```bash
+helm uninstall go-web-app
 ```
----
-
-## Cleanup of Resources using Helm
-
 ```
 chucky@Dell:~/simple-go-web-app-devopsified$ helm uninstall go-web-app
 release "go-web-app" uninstalled
@@ -664,113 +798,87 @@ service/kubernetes   ClusterIP   10.100.0.1   <none>        443/TCP   2d3h
 ```
 
 ---
----
----
 
-# CI/CD
+# 6. CI with GitHub Actions
 
-## CI - Using GitHub Actions
+A CI pipeline was built using **GitHub Actions**.
 
-  - **Build and Unit Test**
-  - **Static Code Analysis**
-  - **Create Docker Image and Push it**
-  - **Update Helm with our Docker Image**
+## CI responsibilities
 
-## CD - Using ArgoCd
-
-  - **ArgoCD will pull the Helm Chart as soon as Helm (values.yaml) tag is updated and deploy it on to the Kubernetes cluster** 
+* build the Go application
+* run tests
+* build Docker image
+* push image to Docker Hub
+* update Helm `values.yaml` with the latest image tag
 
 ---
 
-## CI
+## Workflow logic
 
-### Wrote the Entire CI pipeline to Build, Code Analysis, Creating Docker Image 
+### Step 1 — Build / Test
 
-You can check out the entire file here: [ci.yaml](.github/workflows/ci.yaml) </br>
+Validate the codebase and ensure the application builds successfully.
 
-**We used a few secrets to avoid hardcoding of sensitive information**:
+### Step 2 — Build Docker image
+
+Create a new Docker image for the application.
+
+### Step 3 — Push image to Docker Hub
+
+Push the image using a unique tag.
+
+### Step 4 — Update Helm values
+
+Update the Helm chart with the latest image tag so that ArgoCD can deploy it.
+
+---
+
+## Example snippet
 
 ```yaml
-    push-docker:
-        runs-on: ubuntu-latest
+- name: Login to Docker Hub
+  uses: docker/login-action@v4
+  with:
+    username: ${{ secrets.DOCKERHUB_USERNAME }}
+    password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-        needs: build
-
-        steps:
-        - name: Checkout Repository
-          uses: actions/checkout@v6
-
-        - name: Set up Docker Buildx
-          uses: docker/setup-buildx-action@v4
-
-        - name: Login to Docker Hub
-          uses: docker/login-action@v4
-          with:
-            username: ${{ secrets.DOCKERHUB_USERNAME }}
-            password: ${{ secrets.DOCKERHUB_TOKEN }}
-            
-        - name: Build and Push action
-          uses: docker/build-push-action@v7
-          with:
-            context: .
-            file: ./Dockerfile
-            push: true
-            tags: ${{ secrets.DOCKERHUB_USERNAME }}/go-web-app:${{ github.run_id }}  
-
-    update-newtag-in-helm-chart:
-        runs-on: ubuntu-latest
-
-        needs: push-docker
-
-        steps:
-        - name: Checkout Repository
-          uses: actions/checkout@v7
-          with:
-            token: ${{ secrets.TOKEN_GITHUB }}  # Github Personal Access Token
+- name: Build and Push action
+  uses: docker/build-push-action@v7
+  with:
+    context: .
+    file: ./Dockerfile
+    push: true
+    tags: ${{ secrets.DOCKERHUB_USERNAME }}/go-web-app:${{ github.run_id }}
 ```
 
-### Secrets added in the repo for the github workflow to fetch
 ---
 
-<img width="921" height="229" alt="image" src="https://github.com/user-attachments/assets/32af666b-eddf-493e-be18-a8f442c51a70" />
+## Secrets used
+
+The workflow relies on GitHub Secrets:
+
+* `DOCKERHUB_USERNAME`
+* `DOCKERHUB_TOKEN`
+* `TOKEN_GITHUB`
 
 ---
 
-## Testing the CI part:
+## Why `github.run_id` is used as image tag
 
-```
-chucky@Dell:~/simple-go-web-app-devopsified$ git add .
-chucky@Dell:~/simple-go-web-app-devopsified$ git commit -m "Adding and Testing CI"
-[main 933e786] Adding and Testing CI
- 2 files changed, 157 insertions(+)
- create mode 100644 .github/workflows/ci.yaml
-chucky@Dell:~/simple-go-web-app-devopsified$ git push -o origin
-Enumerating objects: 8, done.
-Counting objects: 100% (8/8), done.
-Delta compression using up to 8 threads
-Compressing objects: 100% (4/4), done.
-Writing objects: 100% (6/6), 2.11 KiB | 2.11 MiB/s, done.
-Total 6 (delta 2), reused 0 (delta 0), pack-reused 0
-remote: Resolving deltas: 100% (2/2), completed with 2 local objects.
-To https://github.com/NayanJyotiKalita/simple-go-web-app-devopsified.git
-   f51a931..933e786  main -> main
+Each workflow run gets a unique `github.run_id`, which is used as the Docker image tag.
+
+Example:
+
+```yaml
+tag: "28332165890"
 ```
 
-**Troubleshooting**:
-  - Came across a little error:
+This makes it easy to:
 
----
-
-<img width="1859" height="946" alt="image" src="https://github.com/user-attachments/assets/6028c8a4-7b71-40d9-bd73-955fd66873b4" />
-
----
----
-
-  - Fixed the error in the shown version
-  - Fixed a few errors in the testing part --> understood the importance of **three dots** in Go **(./..)**
-  - Fixed a few version errors in the checkout action
-
-**And finally:**
+* uniquely identify images
+* map an image to a CI run
+* update Helm automatically
+* trigger ArgoCD deployment when the values file changes
 
 ---
 
@@ -779,110 +887,55 @@ To https://github.com/NayanJyotiKalita/simple-go-web-app-devopsified.git
 ---
 ---
 
-**We will check our Docker Hub Registry whether the Docker Image with the appropriate tag is pushed or not**:
+# 7. CD with ArgoCD
+
+ArgoCD is used to continuously deploy the Helm chart into the Kubernetes cluster.
+
+## CD flow
+
+1. CI updates the Helm chart’s image tag
+2. The updated chart is pushed to GitHub
+3. ArgoCD detects the change
+4. ArgoCD syncs the application to EKS
+5. Kubernetes pulls the new image and rolls out the updated app
 
 ---
 
-<img width="1585" height="805" alt="image" src="https://github.com/user-attachments/assets/58c4161f-6657-4ca7-ba5b-e92fd6d15ab0" />
-
----
----
-
-### This resulted in the same tag with the github run_id being updated in the values.yaml file:
-
-<img width="1328" height="174" alt="image" src="https://github.com/user-attachments/assets/a0ce3707-7f9f-4085-ab26-fdd8b599e8f0" />
-
----
----
-
-## CD
-
-**We install ArgoCD**:
+## Install ArgoCD
 
 ```bash
 kubectl create namespace argocd
-kubectl apply -n argocd --server-side --force-conflicts -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-```
 
-### Setting up the Service for LoadBalancer
-```
-chucky@Dell:~/simple-go-web-app-devopsified$ kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}'
-service/argocd-server patched
+kubectl apply -n argocd --server-side --force-conflicts \
+  -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 ```
 
 ---
 
-<img width="1520" height="441" alt="image" src="https://github.com/user-attachments/assets/b239aa76-2022-4e75-835c-d2f794c9eb69" />
+## Expose ArgoCD UI
 
----
----
-
-**Once we try to access our ArgoCD using the external IP provided to us, we are prompted to type username and password**:
-
----
-
-<img width="1918" height="792" alt="Screenshot 2026-06-28 193813" src="https://github.com/user-attachments/assets/43de8cc6-8ce2-4d43-921e-20e6f2832111" />
-
----
----
-
-- The username can be `admin`
-- Steps for retrieving the password is given below:
-
-```
-chucky@Dell:~/simple-go-web-app-devopsified$ k get secrets -n argocd
-NAME                          TYPE     DATA   AGE
-argocd-initial-admin-secret   Opaque   1      13m
-argocd-notifications-secret   Opaque   0      14m
-argocd-redis                  Opaque   1      13m
-argocd-secret                 Opaque   5      14m
-
-chucky@Dell:~/simple-go-web-app-devopsified$ k edit secret -n argocd argocd-initial-admin-secret
+```bash
+kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}'
 ```
 
-- Copy the password from the file
-- The password is base64 encoded
-- We need to decode it:
+---
 
+## Retrieve admin password
+
+```bash
+kubectl get secrets -n argocd
+kubectl edit secret -n argocd argocd-initial-admin-secret
 ```
-chucky@Dell:~/simple-go-web-app-devopsified$ echo password | base64 --decode
-```
 
-- **The output is the final password and we can access our ArgoCd**
+The initial password is base64 encoded, so decode it before logging in.
 
 ---
 
-<img width="1871" height="597" alt="image" src="https://github.com/user-attachments/assets/34fd7e09-8ded-45ea-a0b4-40bb05077547" />
+## Configure ArgoCD Application
 
----
----
+Create an ArgoCD Application pointing to the Helm chart path in this repository.
 
-- **Then we select on New App to create our Deployment**
-
----
-
-<img width="1871" height="597" alt="image" src="https://github.com/user-attachments/assets/34fd7e09-8ded-45ea-a0b4-40bb05077547" />
-
----
----
-
-**We Configure the Argo Application as below:**
-
----
-
-<img width="354" height="508" alt="Screenshot 2026-06-28 230311" src="https://github.com/user-attachments/assets/1f4bccb8-18f8-42f8-aa3d-6ff3e9cff33e" />
-
----
----
-
-<img width="788" height="857" alt="image" src="https://github.com/user-attachments/assets/3cf1ac96-350f-47a9-8177-ec21ef91eb82" />
-
----
----
-
-## All done with CD:
-
-***Make sure the ingress-controller is running otherwise ingress won't be able to get the DNS name**
+ArgoCD will then monitor that path and automatically sync changes whenever the chart or its values are updated.
 
 ---
 
@@ -891,49 +944,19 @@ chucky@Dell:~/simple-go-web-app-devopsified$ echo password | base64 --decode
 ---
 ---
 
-**We can see our resources:**
-
----
-
 <img width="1202" height="360" alt="image" src="https://github.com/user-attachments/assets/b35039da-ec8d-4d7a-b778-11de4b3b391e" />
 
 ---
 ---
 
-### We can access our website:
+# 8. End-to-End CI/CD Flow
 
-```bash
-chucky@Dell:~/simple-go-web-app-devopsified$ curl go-web-app.local/courses
-<DocType html>
+Here is the full deployment lifecycle of the project:
 
-<html>
-    <head>
-        <title>Learn DevOps from Basics</title>
-        <style>
-            body {
-                margin: 0;
-                padding: 0;
-            }
-    
-```
+## 1. Developer makes a change
 
-#### DNS mapping in the /etc/hosts is still required as our system doesn't understand what go-web-app.local means
-#### In production environment, we will buy a domain and map it e.g.:
+For example, update `static/courses.html`.
 
-```
-go-web-app.com
-        │
-        ▼
-a4a31af79657346d08d198d7a8999102.elb.us-west-2.amazonaws.com
-```
-
----
----
----
-
-# Entire CI/CD pipeline flow
-
-- We make a tiny change in the static folder - `courses.html`:
 ```html
 <DocType html>
 
@@ -947,7 +970,18 @@ a4a31af79657346d08d198d7a8999102.elb.us-west-2.amazonaws.com
             }
 ```
 
-#### As soon as it is committed, it will trigger the CI part of GitHub Action:
+## 2. Push to GitHub
+
+The push triggers GitHub Actions.
+
+## 3. GitHub Actions CI runs
+
+The pipeline:
+
+* builds the Go app
+* creates a Docker image
+* pushes it to Docker Hub
+* updates the Helm image tag in `values.yaml`
 
 ---
 
@@ -956,16 +990,9 @@ a4a31af79657346d08d198d7a8999102.elb.us-west-2.amazonaws.com
 ---
 ---
 
-#### This process will lead to a new Docker image being built and pushed:
+## 4. Git repository is updated
 
----
-
-<img width="1564" height="770" alt="image" src="https://github.com/user-attachments/assets/43e5d8ca-881d-47c8-94db-f5707b3bdcd5" />
-
----
----
-
-#### Leading to changes in the Helm's values.yaml file with the latest tag:
+The Helm chart now references the latest image.
 
 ```yaml
 image:
@@ -973,19 +1000,291 @@ image:
   pullPolicy: IfNotPresent
   tag: "28332165890"
 ```
-
-#### Now this change in the Helm values.yaml will be fetched by ArgoCD and deployed on to the Kubernetes:
-
-- We can verify it by looking at the deployment:
-
 ---
 
 <img width="442" height="170" alt="image" src="https://github.com/user-attachments/assets/c1afb1c5-64d6-4d6a-b65b-68345a138797" />
 
 ---
-**Also**
+---
+
+## 5. ArgoCD detects the Helm change
+
+ArgoCD syncs the updated release to the cluster.
+
+## 6. EKS deploys the new version
+
+Kubernetes pulls the new image and updates the application.
+
+---
 ---
 
 <img width="690" height="248" alt="image" src="https://github.com/user-attachments/assets/978bf394-1af1-4f93-a876-e58b763f3741" />
 
 ---
+<<<<<<< HEAD:rough-readme.md
+=======
+---
+
+# 🚀 How to Run This Project
+
+## 1. Clone the repository
+
+```bash
+git clone https://github.com/<your-username>/simple-go-web-app-devopsified.git
+cd simple-go-web-app-devopsified
+```
+
+---
+
+## 2. Run locally
+
+```bash
+go run main.go
+```
+
+Verify:
+
+```bash
+curl http://localhost:8080/courses
+```
+
+---
+
+## 3. Build and run Docker image
+
+```bash
+docker build -t <dockerhub-username>/go-web-app:v1 .
+docker run -p 8080:8080 <dockerhub-username>/go-web-app:v1
+```
+
+---
+
+## 4. Create EKS cluster
+
+```bash
+eksctl create cluster --name <cluster-name> --region <region>
+```
+
+---
+
+## 5. Deploy raw Kubernetes manifests
+
+```bash
+kubectl apply -f 03-k8s/manifests/deployment.yaml
+kubectl apply -f 03-k8s/manifests/service.yaml
+kubectl apply -f 03-k8s/manifests/ingress.yaml
+```
+
+---
+
+## 6. Install Ingress Controller
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.15.1/deploy/static/provider/aws/deploy.yaml
+```
+
+---
+
+## 7. Deploy using Helm
+
+```bash
+cd 04-helm/go-web-app-chart
+helm install go-web-app .
+```
+
+---
+
+## 8. Configure GitHub Secrets for CI
+
+Add the following secrets in your GitHub repository:
+
+* `DOCKERHUB_USERNAME`
+* `DOCKERHUB_TOKEN`
+* `TOKEN_GITHUB`
+
+---
+
+## 9. Install ArgoCD
+
+```bash
+kubectl create namespace argocd
+kubectl apply -n argocd --server-side --force-conflicts \
+  -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+```
+
+Expose the UI:
+
+```bash
+kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}'
+```
+
+Then create an ArgoCD Application pointing to the Helm chart.
+
+---
+
+# 🧰 Troubleshooting Summary
+
+This project surfaced several real-world issues that are worth documenting.
+
+---
+
+## 1. Local route verification is essential
+
+Before containerizing or deploying, verify the exact route exposed by the application.
+
+For this app, the correct route was:
+
+```bash
+http://localhost:8080/courses
+```
+
+A wrong assumption here causes confusion later in Docker, Kubernetes, and Ingress testing.
+
+---
+
+## 2. NodePort does not automatically mean internet access
+
+Even if a NodePort service exists, the app may still be unreachable if the **AWS Security Group** does not allow traffic to that NodePort.
+
+---
+
+## 3. HTTP status codes tell you where the problem is
+
+When testing through Ingress:
+
+* **404** → request reached the backend, but the route was not found
+* **502 / 503 / 504** → backend connectivity or availability issue
+
+This was extremely helpful during debugging.
+
+---
+
+## 4. `kubectl port-forward` is a powerful isolation tool
+
+If the application works through:
+
+```bash
+kubectl port-forward svc/go-web-app 9090:80
+```
+
+then:
+
+* pod is healthy
+* service is healthy
+* internal Kubernetes networking is healthy
+
+At that point, the problem is likely:
+
+* Ingress
+* DNS / hostname resolution
+* external networking
+* load balancer routing
+
+---
+
+## 5. Local port conflicts can interfere with testing
+
+Port-forwarding to `8080` initially failed because Jenkins was already listening on port `8080`.
+
+Check with:
+
+```bash
+sudo lsof -i :8080
+```
+
+If the port is occupied:
+
+* stop the conflicting service, or
+* use another local port such as `9090`
+
+---
+
+## 6. WSL and Windows hosts files are not the same thing
+
+This was the biggest hostname-related lesson from the project.
+
+If you add a hostname mapping in WSL:
+
+```bash
+/etc/hosts
+```
+
+but open the application in a **Windows browser**, the browser will not use the WSL hosts file.
+
+You must either:
+
+* add the mapping to the **Windows hosts file**
+* or test from within WSL using `curl`
+
+---
+
+# 🎯 Key Learnings from This Project
+
+This project was valuable not only because it covered the deployment workflow, but because it exposed the **operational and troubleshooting side of DevOps**.
+
+## What I learned
+
+* How to move a simple application from local development to a production-style deployment pipeline
+* Why local validation should always come before containerization
+* How multi-stage Docker builds and distroless images improve image quality
+* The difference between:
+
+  * ClusterIP
+  * NodePort
+  * Ingress
+* Why Kubernetes exposure problems are often not Kubernetes problems, but **networking / DNS / cloud security problems**
+* How Helm helps avoid duplication and makes deployments environment-friendly
+* How GitHub Actions can automate not just builds, but also image promotion and Helm updates
+* How ArgoCD fits into a GitOps deployment model
+* How to troubleshoot a deployment layer by layer:
+
+  * app
+  * container
+  * service
+  * ingress
+  * DNS
+  * cloud networking
+
+---
+
+# 🔮 Future Improvements
+
+This project can be extended further in several directions:
+
+* Replace manual `/etc/hosts` mapping with **Route53 + a real domain**
+* Add **TLS / HTTPS** using cert-manager + Let’s Encrypt
+* Replace Ingress with **Gateway API**
+* Add **Prometheus + Grafana** monitoring
+* Add **Horizontal Pod Autoscaling**
+* Provision the EKS cluster and supporting infrastructure with **Terraform**
+* Add **security scanning** to CI (Trivy / Grype / Snyk)
+* Add **unit test coverage reporting**
+* Add **ArgoCD Application manifests** to Git instead of creating apps manually through the UI
+* Create separate Helm values files for:
+
+  * `dev`
+  * `stage`
+  * `prod`
+
+---
+
+# 📌 Final Note
+
+This project was a strong end-to-end DevOps exercise because it didn’t stop at “the app is deployed.”
+
+It covered the **complete delivery lifecycle**:
+
+* local validation
+* containerization
+* Kubernetes deployment
+* NodePort and Ingress exposure
+* Helm templating
+* CI with GitHub Actions
+* GitOps-based CD with ArgoCD
+
+More importantly, it captured the practical debugging that comes with real deployments — especially around **NodePort access**, **Ingress routing**, **ELB hostname mapping**, and **WSL vs Windows DNS resolution**.
+
+If you’re learning DevOps, Kubernetes, CI/CD, or GitOps, this project is a great hands-on reference for how all of these pieces fit together in one workflow.
+
+---
+>>>>>>> 96734fd (Proper README file added):README.md
