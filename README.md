@@ -1287,4 +1287,3 @@ More importantly, it captured the practical debugging that comes with real deplo
 If you’re learning DevOps, Kubernetes, CI/CD, or GitOps, this project is a great hands-on reference for how all of these pieces fit together in one workflow.
 
 ---
->>>>>>> 96734fd (Proper README file added):README.md
