@@ -1285,5 +1285,4 @@ It covered the **complete delivery lifecycle**:
 More importantly, it captured the practical debugging that comes with real deployments — especially around **NodePort access**, **Ingress routing**, **ELB hostname mapping**, and **WSL vs Windows DNS resolution**.
 
 If you’re learning DevOps, Kubernetes, CI/CD, or GitOps, this project is a great hands-on reference for how all of these pieces fit together in one workflow.
-
 ---
