@@ -167,20 +167,20 @@ simple-go-web-app-devopsified/
 ├── .github/
 │   └── workflows/
 │       └── ci.yaml                  # CI workflow
-|
+│ 
 ├── 01-local-testing
 │   └── readme.md
-|
+│ 
 ├── 02-containerization
 │   └── readme.md
-|
+│ 
 ├── 03-k8s
 │   ├── manifests
 │   │   ├── deployment.yaml
 │   │   ├── ingress.yaml
 │   │   └── service.yaml
 │   └── readme.md
-|
+│ 
 ├── 04-helm
 │   ├── go-web-app-chart
 │   │   ├── Chart.yaml
@@ -190,21 +190,21 @@ simple-go-web-app-devopsified/
 │   │   │   └── service.yaml
 │   │   └── values.yaml
 │   └── readme.md
-|
+│ 
 ├── 05-gitops
 │   ├── argocd
 │   │   └── argo-setup.md
 │   └── readme.md
-|
+│ 
 ├── 06-troubleshooting
 │   └── readme.md
-|
+│ 
 ├── Dockerfile
-|
+│ 
 ├── EKS
 │   ├── 1-prerequisites.md
 │   └── 2-installing&deleting-eks.md
-|
+│ 
 ├── README.md
 ├── go.mod
 ├── main.go
